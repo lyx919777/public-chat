@@ -26,6 +26,7 @@
 ```env
 # OpenAI API 配置（必填）
 OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+OPENAI_BASE_URL=https://api.openai.com/v1  # 可选，自定义 API 地址（用于代理或兼容 API）
 OPENAI_MODEL=gpt-4o-mini  # 可选，默认 gpt-4o-mini
 OPENAI_SYSTEM_PROMPT=你是一个友好、专业的 AI 助手。请用简洁明了的中文回答用户的问题。  # 可选
 

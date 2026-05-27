@@ -22,7 +22,15 @@ export async function POST(req: Request) {
       );
     }
 
-    const model = openai(process.env.OPENAI_MODEL || 'gpt-4o-mini');
+    // 配置 OpenAI 客户端，支持自定义 baseURL
+    const baseURL = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+    const provider = openai({
+      apiKey: process.env.OPENAI_API_KEY,
+      compatibility: 'strict',
+      baseURL,
+    });
+
+    const model = provider(process.env.OPENAI_MODEL || 'gpt-4o-mini');
 
     const { text } = await generateText({
       model,
