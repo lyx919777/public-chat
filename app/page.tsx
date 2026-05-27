@@ -13,7 +13,9 @@ export default function Home() {
   const { messages, isLoading, sendMessage, clearCurrentChat, isSidebarOpen, error } = useChatStore();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [config, setConfig] = useState<{ model: string; baseUrl: string; hasApiKey: boolean } | null>(null);
+  const [config, setConfig] = useState<{ model: string; baseUrl: string; hasApiKey: boolean; apiKeyPrefix?: string } | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   // 初始化数据
   useEffect(() => {
@@ -23,6 +25,18 @@ export default function Home() {
       .then(data => setConfig(data))
       .catch(console.error);
   }, []);
+
+  // 获取调试信息
+  const fetchDebugInfo = async () => {
+    try {
+      const res = await fetch('/api/debug');
+      const data = await res.json();
+      setDebugInfo(data);
+      setShowDebug(true);
+    } catch (err) {
+      console.error('获取调试信息失败:', err);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -129,6 +143,20 @@ export default function Home() {
                   ⚠️ 请在 Vercel 项目设置中配置 OPENAI_API_KEY 环境变量
                 </div>
               )}
+              <button
+                onClick={fetchDebugInfo}
+                className="mt-2 text-blue-500 hover:text-blue-700 underline"
+              >
+                {showDebug ? '隐藏调试信息' : '显示调试信息'}
+              </button>
+            </div>
+          )}
+          {showDebug && debugInfo && (
+            <div className="mt-2 p-2 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">
+              <div className="font-semibold mb-1">调试信息：</div>
+              <pre className="whitespace-pre-wrap overflow-auto max-h-60">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
             </div>
           )}
         </div>
