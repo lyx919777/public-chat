@@ -10,7 +10,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 export default function Home() {
   useTheme();
-  const { messages, isLoading, sendMessage, clearCurrentChat, isSidebarOpen } = useChatStore();
+  const { messages, isLoading, sendMessage, clearCurrentChat, isSidebarOpen, error } = useChatStore();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -30,7 +30,11 @@ export default function Home() {
   const handleSubmit = async (content: string) => {
     if (!content.trim()) return;
     setInput('');
-    await sendMessage(content);
+    try {
+      await sendMessage(content);
+    } catch (error) {
+      console.error('发送消息失败:', error);
+    }
   };
 
   const handleClear = () => {
@@ -82,6 +86,17 @@ export default function Home() {
               )}
               <div ref={messagesEndRef} />
             </>
+          )}
+          {error && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm text-center">
+              {error}
+              <button
+                onClick={() => window.location.reload()}
+                className="ml-2 underline hover:text-red-800 dark:hover:text-red-300"
+              >
+                刷新页面重试
+              </button>
+            </div>
           )}
         </main>
 

@@ -9,10 +9,20 @@ export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
 
+    if (!messages || !Array.isArray(messages)) {
+      return new Response(
+        JSON.stringify({ error: '消息格式无效' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     if (!process.env.OPENAI_API_KEY) {
       return new Response(
         JSON.stringify({ error: '服务器未配置 OpenAI API 密钥' }),
-        { 
+        {
           status: 500,
           headers: { 'Content-Type': 'application/json' }
         }
@@ -54,12 +64,12 @@ export async function POST(req: Request) {
       const errorText = await response.text();
       console.error('Chat API error response:', response.status, errorText);
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: 'API 请求失败',
           details: errorText,
-          status: response.status 
+          status: response.status
         }),
-        { 
+        {
           status: response.status,
           headers: { 'Content-Type': 'application/json' }
         }
@@ -72,7 +82,7 @@ export async function POST(req: Request) {
     if (!assistantMessage) {
       return new Response(
         JSON.stringify({ error: 'API 返回内容为空' }),
-        { 
+        {
           status: 500,
           headers: { 'Content-Type': 'application/json' }
         }
@@ -83,11 +93,11 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Chat API error:', error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: '处理请求时发生错误',
         details: error instanceof Error ? error.message : String(error)
       }),
-      { 
+      {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       }
