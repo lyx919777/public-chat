@@ -113,7 +113,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       set({
         currentConversation: conversation,
         messages,
-        isSidebarOpen: false, // 移动端选择后自动关闭侧边栏
       });
     } catch (error) {
       console.error('切换对话失败:', error);

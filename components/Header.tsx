@@ -17,8 +17,8 @@ export function Header({ onClear }: HeaderProps) {
       <div className="flex items-center gap-3">
         <button
           onClick={() => toggleSidebar()}
-          className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors md:hidden"
-          aria-label="打开侧边栏"
+          className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          aria-label="切换侧边栏"
         >
           <Menu className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
         </button>

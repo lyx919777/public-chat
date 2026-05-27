@@ -58,15 +58,6 @@ export function Sidebar() {
     }
   };
 
-  // 移动端点击选择后自动关闭侧边栏
-  const handleSelectMobile = async (id: string) => {
-    await selectConversation(id);
-    // 在移动端自动关闭侧边栏
-    if (window.innerWidth < 768) {
-      toggleSidebar();
-    }
-  };
-
   return (
     <>
       {/* 移动端遮罩层 */}
@@ -79,8 +70,8 @@ export function Sidebar() {
 
       {/* 侧边栏 */}
       <aside
-        className={`fixed top-0 left-0 h-full bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 z-50 transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? 'w-72 translate-x-0' : 'w-0 -translate-x-full'
+        className={`fixed top-0 left-0 h-full bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 z-50 transition-all duration-300 ease-in-out md:relative ${
+          isSidebarOpen ? 'w-72 translate-x-0' : 'w-0 -translate-x-full md:w-72 md:translate-x-0'
         }`}
       >
         <div className="flex flex-col h-full">
@@ -117,7 +108,7 @@ export function Sidebar() {
               conversations.map((conversation) => (
                 <div
                   key={conversation.id}
-                  onClick={() => handleSelectMobile(conversation.id)}
+                  onClick={() => handleSelect(conversation.id)}
                   className={`group relative flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
                     currentConversation?.id === conversation.id
                       ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
