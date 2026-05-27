@@ -13,10 +13,15 @@ export default function Home() {
   const { messages, isLoading, sendMessage, clearCurrentChat, isSidebarOpen, error } = useChatStore();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [config, setConfig] = useState<{ model: string; baseUrl: string; hasApiKey: boolean } | null>(null);
 
   // 初始化数据
   useEffect(() => {
     useChatStore.getState().initialize();
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(data => setConfig(data))
+      .catch(console.error);
   }, []);
 
   const scrollToBottom = () => {
@@ -110,6 +115,14 @@ export default function Home() {
           <p className="text-xs text-center text-zinc-400 dark:text-zinc-500 mt-2">
             对话记录保存在本地 · 无需登录 · 免费使用
           </p>
+          {config && (
+            <div className="mt-2 p-2 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">
+              <div className="font-semibold mb-1">当前配置：</div>
+              <div>模型: {config.model}</div>
+              <div>API地址: {config.baseUrl}</div>
+              <div>API密钥: {config.hasApiKey ? '已配置' : '未配置'}</div>
+            </div>
+          )}
         </div>
       </div>
     </div>
