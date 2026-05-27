@@ -121,6 +121,14 @@ export default function Home() {
               <div>模型: {config.model}</div>
               <div>API地址: {config.baseUrl}</div>
               <div>API密钥: {config.hasApiKey ? '已配置' : '未配置'}</div>
+              {config.hasApiKey && config.apiKeyPrefix && (
+                <div>密钥前缀: {config.apiKeyPrefix}</div>
+              )}
+              {!config.hasApiKey && (
+                <div className="text-red-500 mt-1">
+                  ⚠️ 请在 Vercel 项目设置中配置 OPENAI_API_KEY 环境变量
+                </div>
+              )}
             </div>
           )}
         </div>
