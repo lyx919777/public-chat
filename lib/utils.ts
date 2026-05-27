@@ -20,3 +20,8 @@ export function formatTime(timestamp: number): string {
   
   return `${date.getMonth() + 1}月${date.getDate()}日 ${timeStr}`;
 }
+
+export function formatDate(timestamp: number): string {
+  const date = new Date(timestamp);
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
