@@ -13,30 +13,10 @@ export default function Home() {
   const { messages, isLoading, sendMessage, clearCurrentChat, isSidebarOpen, error } = useChatStore();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [config, setConfig] = useState<{ model: string; baseUrl: string; hasApiKey: boolean; apiKeyPrefix?: string } | null>(null);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [showDebug, setShowDebug] = useState(false);
-
   // 初始化数据
   useEffect(() => {
     useChatStore.getState().initialize();
-    fetch('/api/config')
-      .then(res => res.json())
-      .then(data => setConfig(data))
-      .catch(console.error);
   }, []);
-
-  // 获取调试信息
-  const fetchDebugInfo = async () => {
-    try {
-      const res = await fetch('/api/debug');
-      const data = await res.json();
-      setDebugInfo(data);
-      setShowDebug(true);
-    } catch (err) {
-      console.error('获取调试信息失败:', err);
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -129,36 +109,6 @@ export default function Home() {
           <p className="text-xs text-center text-zinc-400 dark:text-zinc-500 mt-2">
             对话记录保存在本地 · 无需登录 · 免费使用
           </p>
-          {config && (
-            <div className="mt-2 p-2 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">
-              <div className="font-semibold mb-1">当前配置：</div>
-              <div>模型: {config.model}</div>
-              <div>API地址: {config.baseUrl}</div>
-              <div>API密钥: {config.hasApiKey ? '已配置' : '未配置'}</div>
-              {config.hasApiKey && config.apiKeyPrefix && (
-                <div>密钥前缀: {config.apiKeyPrefix}</div>
-              )}
-              {!config.hasApiKey && (
-                <div className="text-red-500 mt-1">
-                  ⚠️ 请在 Vercel 项目设置中配置 OPENAI_API_KEY 环境变量
-                </div>
-              )}
-              <button
-                onClick={fetchDebugInfo}
-                className="mt-2 text-blue-500 hover:text-blue-700 underline"
-              >
-                {showDebug ? '隐藏调试信息' : '显示调试信息'}
-              </button>
-            </div>
-          )}
-          {showDebug && debugInfo && (
-            <div className="mt-2 p-2 bg-zinc-100 dark:bg-zinc-800 rounded text-xs">
-              <div className="font-semibold mb-1">调试信息：</div>
-              <pre className="whitespace-pre-wrap overflow-auto max-h-60">
-                {JSON.stringify(debugInfo, null, 2)}
-              </pre>
-            </div>
-          )}
         </div>
       </div>
     </div>
