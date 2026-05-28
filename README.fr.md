@@ -99,3 +99,7 @@ public-chat/
 ## Licence
 
 MIT
+
+---
+
+> Construit par [AtomCode](https://atomgit.com) + [CodingPlan](https://atomgit.com) · Agent IA · Mars 2025
