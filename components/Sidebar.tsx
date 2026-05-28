@@ -70,8 +70,8 @@ export function Sidebar() {
 
       {/* 侧边栏 */}
       <aside
-        className={`fixed top-0 left-0 h-full bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 z-50 transition-all duration-300 ease-in-out md:relative ${
-          isSidebarOpen ? 'w-72 translate-x-0' : 'w-0 -translate-x-full md:w-72 md:translate-x-0'
+        className={`fixed top-0 left-0 h-full w-72 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 z-50 transition-transform duration-300 ease-in-out ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex flex-col h-full">

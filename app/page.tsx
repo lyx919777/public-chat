@@ -49,7 +49,7 @@ export default function Home() {
       {/* 主内容区域 */}
       <div 
         className={`flex-1 flex flex-col h-full transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? 'md:ml-72' : ''
+          isSidebarOpen ? 'md:ml-72' : 'md:ml-0'
         }`}
       >
         <Header onClear={handleClear} />
