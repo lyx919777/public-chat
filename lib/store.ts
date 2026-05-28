@@ -15,12 +15,22 @@ interface ChatStore {
   currentConversation: Conversation | null;
   // 所有对话列表
   conversations: Conversation[];
-  // 当前对话的消息
+  // 当前对话的消息（从 messagesByConversation 同步）
   messages: Message[];
-  // 加载状态
+  // 当前对话的加载状态（从 loadingByConversation 同步）
   isLoading: boolean;
-  // 错误信息
+  // 当前对话的错误信息（从 errorByConversation 同步）
   error: string | null;
+
+  // === 多对话并行 ===
+  // 所有对话的消息（按 conversationId 索引）
+  messagesByConversation: Record<string, Message[]>;
+  // 所有对话的加载状态
+  loadingByConversation: Record<string, boolean>;
+  // 所有对话的错误信息
+  errorByConversation: Record<string, string | null>;
+  // 正在流式输出的对话 ID 列表
+  streamingConversations: string[];
   // 初始化 - 加载对话列表和默认对话
   initialize: () => Promise<void>;
 
@@ -59,6 +69,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   messages: [],
   isLoading: false,
   error: null,
+  messagesByConversation: {},
+  loadingByConversation: {},
+  errorByConversation: {},
+  streamingConversations: [],
 
   initialize: async () => {
     try {
@@ -85,7 +99,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       set((state) => ({
         conversations: [conversation, ...state.conversations],
         currentConversation: conversation,
+        messagesByConversation: {
+          ...state.messagesByConversation,
+          [conversation.id]: [],
+        },
         messages: [],
+        isLoading: false,
+        error: null,
       }));
       return conversation;
     } catch (error) {
@@ -96,18 +116,29 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   selectConversation: async (conversationId: string) => {
     try {
-      const conversations = get().conversations;
+      const { conversations, messagesByConversation } = get();
       const conversation = conversations.find((c) => c.id === conversationId);
       if (!conversation) return;
 
-      // 加载该对话的消息
-      const dbMessages = await db.getMessagesByConversation(conversationId);
-      const messages = dbMessages.map(toMessage);
+      // 如果该对话的消息不在内存中，从 DB 加载
+      if (!messagesByConversation[conversationId]) {
+        const dbMessages = await db.getMessagesByConversation(conversationId);
+        const messages = dbMessages.map(toMessage);
+        set((state) => ({
+          messagesByConversation: {
+            ...state.messagesByConversation,
+            [conversationId]: messages,
+          },
+        }));
+      }
 
-      set({
+      // 同步当前视图
+      set((state) => ({
         currentConversation: conversation,
-        messages,
-      });
+        messages: state.messagesByConversation[conversationId] || [],
+        isLoading: state.loadingByConversation[conversationId] || false,
+        error: state.errorByConversation[conversationId] || null,
+      }));
     } catch (error) {
       console.error('切换对话失败:', error);
     }
@@ -140,16 +171,24 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         const newConversations = state.conversations.filter(
           (c) => c.id !== conversationId
         );
-        const currentConversation =
-          state.currentConversation?.id === conversationId
-            ? null
-            : state.currentConversation;
+        const isCurrent = state.currentConversation?.id === conversationId;
+
+        // 清理 per-conversation 数据
+        const newMsgMap = { ...state.messagesByConversation };
+        const newLoadingMap = { ...state.loadingByConversation };
+        const newErrorMap = { ...state.errorByConversation };
+        delete newMsgMap[conversationId];
+        delete newLoadingMap[conversationId];
+        delete newErrorMap[conversationId];
 
         return {
           conversations: newConversations,
-          currentConversation,
-          messages:
-            state.currentConversation?.id === conversationId ? [] : state.messages,
+          currentConversation: isCurrent ? null : state.currentConversation,
+          messages: isCurrent ? [] : state.messages,
+          messagesByConversation: newMsgMap,
+          loadingByConversation: newLoadingMap,
+          errorByConversation: newErrorMap,
+          streamingConversations: state.streamingConversations.filter((id) => id !== conversationId),
         };
       });
 
@@ -162,20 +201,20 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-sendMessage: async (content: string) => {
+  sendMessage: async (content: string) => {
     const { currentConversation } = get();
     if (!currentConversation) {
-      // 如果没有当前对话，创建一个
       await get().createNewConversation();
     }
 
     const conversation = get().currentConversation;
     if (!conversation) return;
+    const convId = conversation.id;
 
     const userMessage: DBMessage = {
       id: crypto.randomUUID(),
-      conversationId: conversation.id,
-role: 'user',
+      conversationId: convId,
+      role: 'user',
       content,
       timestamp: Date.now(),
     };
@@ -183,11 +222,32 @@ role: 'user',
     // 保存到数据库
     await db.addMessage(userMessage);
 
-    // 更新状态
+    // 更新状态（按 conversationId）
+    const userMsg = toMessage(userMessage);
     set((state) => ({
-      messages: [...state.messages, toMessage(userMessage)],
-      isLoading: true,
-      error: null,
+      messagesByConversation: {
+        ...state.messagesByConversation,
+        [convId]: [...(state.messagesByConversation[convId] || []), userMsg],
+      },
+      loadingByConversation: {
+        ...state.loadingByConversation,
+        [convId]: true,
+      },
+      errorByConversation: {
+        ...state.errorByConversation,
+        [convId]: null,
+      },
+      // 同步当前视图（如果是当前对话）
+      ...(state.currentConversation?.id === convId
+        ? {
+            messages: [...(state.messagesByConversation[convId] || []), userMsg],
+            isLoading: true,
+            error: null,
+          }
+        : {}),
+      streamingConversations: !state.streamingConversations.includes(convId)
+        ? [...state.streamingConversations, convId]
+        : state.streamingConversations,
     }));
 
     // 如果对话标题是默认的"新对话"，用第一条消息更新标题
@@ -197,13 +257,15 @@ role: 'user',
     }
 
     try {
+      // 获取该对话的消息列表作为上下文
+      const convMessages = get().messagesByConversation[convId] || [];
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-messages: get().messages.map((msg) => ({
+          messages: convMessages.map((msg) => ({
             role: msg.role,
             content: msg.content,
           })),
@@ -233,9 +295,17 @@ messages: get().messages.map((msg) => ({
         content: '',
         timestamp: Date.now(),
       };
-      set((state) => ({
-        messages: [...state.messages, placeholderMessage],
-      }));
+
+      set((state) => {
+        const newMsgs = [...(state.messagesByConversation[convId] || []), placeholderMessage];
+        return {
+          messagesByConversation: {
+            ...state.messagesByConversation,
+            [convId]: newMsgs,
+          },
+          ...(state.currentConversation?.id === convId ? { messages: newMsgs } : {}),
+        };
+      });
 
       let accumulatedContent = '';
       let accumulatedThinking = '';
@@ -275,13 +345,26 @@ messages: get().messages.map((msg) => ({
               }
               if (delta || reasoning) {
                 // 每收到一段增量就更新 UI
-                set((state) => ({
-                  messages: state.messages.map((msg) =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, content: accumulatedContent, thinking: accumulatedThinking || undefined }
-                      : msg
-                  ),
-                }));
+                const updatedMsg = {
+                  ...placeholderMessage,
+                  content: accumulatedContent,
+                  thinking: accumulatedThinking || undefined,
+                };
+                set((state) => {
+                  const convMsgs = state.messagesByConversation[convId] || [];
+                  const newConvMsgs = convMsgs.map((msg) =>
+                    msg.id === assistantMessageId ? updatedMsg : msg
+                  );
+                  return {
+                    messagesByConversation: {
+                      ...state.messagesByConversation,
+                      [convId]: newConvMsgs,
+                    },
+                    ...(state.currentConversation?.id === convId
+                      ? { messages: newConvMsgs }
+                      : {}),
+                  };
+                });
               }
             } catch {
               // 跳过无法解析的行
@@ -318,7 +401,7 @@ messages: get().messages.map((msg) => ({
       // 保存完整消息到数据库
       const assistantMessage: DBMessage = {
         id: assistantMessageId,
-        conversationId: conversation.id,
+        conversationId: convId,
         role: 'assistant',
         content: finalContent,
         timestamp: Date.now(),
@@ -327,21 +410,50 @@ messages: get().messages.map((msg) => ({
       };
       await db.addMessage(assistantMessage);
 
-      // 更新 UI 为最终内容（剥离标签后的内容）
-      set((state) => ({
-        messages: state.messages.map((msg) =>
-          msg.id === assistantMessageId
-            ? { ...msg, content: finalContent, thinking: finalThinking, tps }
-            : msg
-        ),
-        isLoading: false,
-      }));
+      // 更新 UI 为最终内容
+      const finalUpdatedMsg = {
+        ...placeholderMessage,
+        content: finalContent,
+        thinking: finalThinking,
+        tps,
+      };
+      set((state) => {
+        const convMsgs = state.messagesByConversation[convId] || [];
+        const newConvMsgs = convMsgs.map((msg) =>
+          msg.id === assistantMessageId ? finalUpdatedMsg : msg
+        );
+        const isCurrent = state.currentConversation?.id === convId;
+        return {
+          messagesByConversation: {
+            ...state.messagesByConversation,
+            [convId]: newConvMsgs,
+          },
+          loadingByConversation: {
+            ...state.loadingByConversation,
+            [convId]: false,
+          },
+          streamingConversations: state.streamingConversations.filter((id) => id !== convId),
+          ...(isCurrent
+            ? { messages: newConvMsgs, isLoading: false }
+            : {}),
+        };
+      });
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error('发送消息失败:', msg);
       set((state) => ({
-        isLoading: false,
-        error: msg,
+        loadingByConversation: {
+          ...state.loadingByConversation,
+          [convId]: false,
+        },
+        errorByConversation: {
+          ...state.errorByConversation,
+          [convId]: msg,
+        },
+        streamingConversations: state.streamingConversations.filter((id) => id !== convId),
+        ...(state.currentConversation?.id === convId
+          ? { isLoading: false, error: msg }
+          : {}),
       }));
     }
   },
@@ -349,13 +461,18 @@ messages: get().messages.map((msg) => ({
   clearCurrentChat: async () => {
     const { currentConversation } = get();
     if (!currentConversation) return;
-
-    // 删除当前对话的所有消息
-    const messages = await db.getMessagesByConversation(currentConversation.id);
-    for (const msg of messages) {
-      await db.deleteMessage(msg.id);
-    }
-
-    set({ messages: [], error: null });
+    const convId = currentConversation.id;
+    set((state) => ({
+      messagesByConversation: {
+        ...state.messagesByConversation,
+        [convId]: [],
+      },
+      messages: [],
+      error: null,
+      errorByConversation: {
+        ...state.errorByConversation,
+        [convId]: null,
+      },
+    }));
   },
 }));
