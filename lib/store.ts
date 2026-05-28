@@ -221,23 +221,78 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         throw new Error(errorData.error || `API 请求失败 (${response.status})`);
       }
 
-      const data = await response.json();
+      // 读取流式 SSE 响应
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
 
-      const assistantMessage: DBMessage = {
-        id: crypto.randomUUID(),
-        conversationId: conversation.id,
+      // 先创建一个占位消息，后续逐步更新内容
+      const assistantMessageId = crypto.randomUUID();
+      const placeholderMessage: Message = {
+        id: assistantMessageId,
         role: 'assistant',
-        content: data.message?.content || data.response || '',
+        content: '',
         timestamp: Date.now(),
       };
+      set((state) => ({
+        messages: [...state.messages, placeholderMessage],
+      }));
 
-      // 保存到数据库
+      let accumulatedContent = '';
+      const buffer: string[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        buffer.push(chunk);
+
+        // 解析 SSE 行
+        const lines = buffer.join('').split('\n');
+        buffer.length = 0;
+
+        for (let i = 0; i < lines.length - 1; i++) {
+          const line = lines[i].trim();
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') break;
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content;
+              if (delta) {
+                accumulatedContent += delta;
+                // 每收到一段增量就更新 UI
+                set((state) => ({
+                  messages: state.messages.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, content: accumulatedContent }
+                      : msg
+                  ),
+                }));
+              }
+            } catch {
+              // 跳过无法解析的行
+            }
+          }
+        }
+        // 保留最后一个可能不完整的行
+        const lastLine = lines[lines.length - 1].trim();
+        if (lastLine.length > 0) {
+          buffer.push(lastLine);
+        }
+      }
+
+      // 流结束，保存完整消息到数据库
+      const assistantMessage: DBMessage = {
+        id: assistantMessageId,
+        conversationId: conversation.id,
+        role: 'assistant',
+        content: accumulatedContent,
+        timestamp: Date.now(),
+      };
       await db.addMessage(assistantMessage);
 
-      set((state) => ({
-        messages: [...state.messages, toMessage(assistantMessage)],
-        isLoading: false,
-      }));
+      set({ isLoading: false });
     } catch (error) {
       set((state) => ({
         isLoading: false,

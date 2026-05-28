@@ -37,9 +37,10 @@ export async function POST(req: Request) {
     console.log('Chat API - BaseURL:', baseURL);
     console.log('Chat API - Messages count:', messages.length);
 
-    // 构建标准聊天完成请求
+    // 构建流式聊天完成请求
     const payload = {
       model,
+      stream: true,
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages.map((msg: Message) => ({
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
       ],
     };
 
-    console.log('Chat API - Calling:', `${baseURL}/chat/completions`);
+    console.log('Chat API - Calling (stream):', `${baseURL}/chat/completions`);
 
     const response = await fetch(`${baseURL}/chat/completions`, {
       method: 'POST',
@@ -76,20 +77,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const data = await response.json();
-    const assistantMessage = data.choices?.[0]?.message?.content;
-
-    if (!assistantMessage) {
-      return new Response(
-        JSON.stringify({ error: 'API 返回内容为空' }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    return Response.json({ message: { role: 'assistant', content: assistantMessage } });
+    // 直接转发流式响应
+    return new Response(response.body, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
   } catch (error) {
     console.error('Chat API error:', error);
     return new Response(
