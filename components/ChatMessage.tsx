@@ -8,6 +8,15 @@ import { type Message } from '@/lib/store';
 import { formatTime } from '@/lib/utils';
 import type { Components } from 'react-markdown';
 
+/** 将 \(...\) 和 \[...\] 转换为 $...$ 和 $$...$$ */
+function preprocessMath(text: string): string {
+  // \[ ... \] → $$ ... $$
+  let result = text.replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$');
+  // \( ... \) → $ ... $
+  result = result.replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
+  return result;
+}
+
 function CopyButton({ codeText }: { codeText: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -135,7 +144,14 @@ export function ChatMessage({ message }: ChatMessageProps) {
                       🤔 思考过程
                     </button>
                     {expandedThinking === message.id && (
-                      <pre className="whitespace-pre-wrap text-xs mt-2">{message.thinking}</pre>
+                      <div className="mt-2 text-xs leading-relaxed">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkMath]}
+                          rehypePlugins={[rehypeKatex]}
+                        >
+                          {preprocessMath(message.thinking)}
+                        </ReactMarkdown>
+                      </div>
                     )}
                   </div>
                 )}
@@ -144,7 +160,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   rehypePlugins={[rehypeKatex]}
                   components={markdownComponents}
                 >
-                  {message.content}
+                  {preprocessMath(message.content)}
                 </ReactMarkdown>
                 {message.tps !== undefined && (
                   <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-2 border-t border-zinc-200 dark:border-zinc-700 pt-1">
