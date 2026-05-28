@@ -7,6 +7,17 @@ import { type Message } from '@/lib/store';
 import { formatTime } from '@/lib/utils';
 import type { Components } from 'react-markdown';
 
+/** 预处理 AI 回复内容：将 [ LaTeX ] 转换为 $$ LaTeX $$（仅当内容看起来像数学公式时） */
+function preprocessMath(content: string): string {
+  return content.replace(/\[([^\[\]]+)\]/g, (match, inner) => {
+    // 如果内容包含反斜杠命令(如 \frac)、^、_、{、} 等数学特征，视为 LaTeX
+    if (/\\[a-zA-Z]+|[\\^{}_]/.test(inner)) {
+      return `$$${inner}$$`;
+    }
+    return match;
+  });
+}
+
 interface ChatMessageProps {
   message: Message;
 }
@@ -95,7 +106,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 rehypePlugins={[rehypeKatex]}
                 components={markdownComponents}
               >
-                {message.content}
+                {preprocessMath(message.content)}
               </ReactMarkdown>
             )}
           </div>
