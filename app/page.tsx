@@ -26,11 +26,11 @@ export default function Home() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSubmit = async (content: string, images?: string[]) => {
-    if (!content.trim() && (!images || images.length === 0)) return;
+  const handleSubmit = async (content: string) => {
+    if (!content.trim()) return;
     setInput('');
     try {
-      await sendMessage(content, images);
+      await sendMessage(content);
     } catch (error) {
       console.error('发送消息失败:', error);
     }

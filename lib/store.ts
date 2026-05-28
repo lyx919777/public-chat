@@ -7,7 +7,6 @@ export interface Message {
   content: string;
   timestamp: number;
   thinking?: string;
-  images?: string[];
 }
 
 interface ChatStore {
@@ -161,7 +160,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-  sendMessage: async (content: string, images?: string[]) => {
+sendMessage: async (content: string) => {
     const { currentConversation } = get();
     if (!currentConversation) {
       // 如果没有当前对话，创建一个
@@ -174,9 +173,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const userMessage: DBMessage = {
       id: crypto.randomUUID(),
       conversationId: conversation.id,
-      role: 'user',
+role: 'user',
       content,
-      images: images || undefined,
       timestamp: Date.now(),
     };
 
@@ -203,10 +201,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: get().messages.map((msg) => ({
+messages: get().messages.map((msg) => ({
             role: msg.role,
             content: msg.content,
-            ...(msg.images ? { images: msg.images } : {}),
           })),
         }),
       });

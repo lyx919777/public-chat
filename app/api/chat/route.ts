@@ -3,7 +3,6 @@ export const runtime = 'edge';
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  images?: string[];
 }
 
 export async function POST(req: Request) {
@@ -45,19 +44,7 @@ export async function POST(req: Request) {
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages.map((msg: Message) => {
-          if (msg.images && msg.images.length > 0) {
-            return {
-              role: msg.role,
-              content: [
-                { type: 'text', text: msg.content },
-                ...msg.images.map((img: string) => ({
-                  type: 'image_url',
-                  image_url: { url: img.startsWith('data:') ? img : `data:image/jpeg;base64,${img}` }
-                }))
-              ]
-            };
-          }
-          return { role: msg.role, content: msg.content };
+return { role: msg.role, content: msg.content };
         }),
       ],
     };
