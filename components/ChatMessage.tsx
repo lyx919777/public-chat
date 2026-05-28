@@ -7,15 +7,28 @@ import { type Message } from '@/lib/store';
 import { formatTime } from '@/lib/utils';
 import type { Components } from 'react-markdown';
 
-/** 预处理 AI 回复内容：将 [ LaTeX ] 转换为 $$ LaTeX $$（仅当内容看起来像数学公式时） */
+/** 预处理 AI 回复内容，确保所有数学公式被正确识别 */
 function preprocessMath(content: string): string {
-  return content.replace(/\[([^\[\]]+)\]/g, (match, inner) => {
-    // 如果内容包含反斜杠命令(如 \frac)、^、_、{、} 等数学特征，视为 LaTeX
+  // 2) 将 [ LaTeX 内容 ]（含 \、^、_、{、}）转成独立一行的 $$ ... $$
+  //    注意: 这需要放在前面，避免与已有 $$ 冲突
+  content = content.replace(/\[([^\[\]]+)\]/g, (match, inner) => {
     if (/\\[a-zA-Z]+|[\\^{}_]/.test(inner)) {
-      return `$$${inner}$$`;
+      return `\n\n$$${inner.trim()}$$\n\n`;
     }
     return match;
   });
+
+  // 3) 将行内混在文字中的 $$...$$（非独占一行）也移到独立一行
+  content = content.replace(
+    /([^\n])\s*\$\$([\s\S]*?)\$\$\s*/g,
+    (_, before, inner) => {
+      // 如果 before 是换行则不动，否则加换行分离
+      if (before === '\n' || before === '') return _;
+      return `${before}\n\n$$${inner.trim()}$$\n\n`;
+    }
+  );
+
+  return content;
 }
 
 interface ChatMessageProps {
