@@ -12,6 +12,7 @@ An open-source AI chat website with no authentication required. Supports OpenAI 
 
 - 🤖 No login required, use directly
 - 💬 Multi-turn conversation with history
+- 🧠 Multi-model support — switch models mid-conversation
 - 🌓 Dark / Light theme toggle
 - 📱 Responsive design, mobile-friendly
 - 💾 Local conversation storage (IndexedDB)
@@ -36,7 +37,7 @@ OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # Optional
 OPENAI_BASE_URL=https://api.openai.com/v1   # Custom API endpoint (proxy or compatible API)
-OPENAI_MODEL=gpt-4o-mini                     # Model name, default: gpt-4o-mini
+OPENAI_MODEL=gpt-4o-mini                     # Model name(s). Use comma for multiple: gpt-4o,deepseek-chat,claude-3
 OPENAI_SYSTEM_PROMPT=You are a helpful, friendly AI assistant.  # System prompt
 
 # Customization

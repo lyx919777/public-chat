@@ -10,6 +10,7 @@
 
 - 🤖 无需登录认证，直接使用
 - 💬 多轮对话，历史记录保存
+- 🧠 多模型支持 — 环境变量逗号分隔，对话中可切换模型
 - 🌓 明暗主题切换
 - 📱 响应式设计，适配移动端
 - 💾 本地存储对话历史（IndexedDB）
@@ -34,7 +35,7 @@ OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 # 可选配置
 OPENAI_BASE_URL=https://api.openai.com/v1   # 自定义 API 地址（用于代理或兼容 API）
-OPENAI_MODEL=gpt-4o-mini                     # 模型名称，默认 gpt-4o-mini
+OPENAI_MODEL=gpt-4o-mini                     # 模型名称，逗号分隔支持多模型：gpt-4o,deepseek-chat,claude-3
 OPENAI_SYSTEM_PROMPT=你是一个友好、专业的 AI 助手。请用简洁的中文回答。  # 系统提示词
 
 # 自定义配置

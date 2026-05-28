@@ -7,7 +7,7 @@ interface Message {
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json();
+    const { messages, model: clientModel } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -30,7 +30,9 @@ export async function POST(req: Request) {
     }
 
     const baseURL = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
-    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    // 多模型支持：OPENAI_MODEL 可填逗号分隔列表，客户端可指定
+    const envModels = (process.env.OPENAI_MODEL || 'gpt-4o-mini').split(',').map(s => s.trim()).filter(Boolean);
+    const model = clientModel || envModels[0];
     const systemPrompt = process.env.OPENAI_SYSTEM_PROMPT || '你是一个友好、专业的 AI 助手。请用简洁明了的中文回答用户的问题。';
 
     console.log('Chat API - Model:', model);

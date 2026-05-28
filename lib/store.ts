@@ -33,6 +33,15 @@ interface ChatStore {
   errorByConversation: Record<string, string | null>;
   // 正在流式输出的对话 ID 列表
   streamingConversations: string[];
+
+  // === 多模型 ===
+  // 可用模型列表（从环境变量解析）
+  availableModels: string[];
+  // 当前选中的模型（在 Header 中显示）
+  currentModel: string;
+  // 按对话记忆的模型选择
+  setCurrentConversationModel: (model: string) => void;
+
   // 初始化 - 加载对话列表和默认对话
   initialize: () => Promise<void>;
 
@@ -78,12 +87,24 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   loadingByConversation: {},
   errorByConversation: {},
   streamingConversations: [],
+  availableModels: [],
+  currentModel: '',
 
   initialize: async () => {
     try {
       // 加载对话列表
       const conversations = await db.getConversations();
       set({ conversations });
+
+      // 从服务端获取可用模型
+      try {
+        const res = await fetch('/api/config');
+        const config = await res.json();
+        const models: string[] = config.models || [];
+        set({ availableModels: models, currentModel: models[0] || '' });
+      } catch (e) {
+        console.error('获取模型列表失败:', e);
+      }
 
       // 如果有对话，加载最新的；否则创建新对话
       if (conversations.length > 0) {
@@ -100,7 +121,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   createNewConversation: async () => {
     try {
+      const { currentModel } = get();
       const conversation = await db.createConversation('新对话');
+      // 保存选中的模型到对话
+      if (currentModel) {
+        conversation.model = currentModel;
+        await db.updateConversation(conversation);
+      }
       set((state) => ({
         conversations: [conversation, ...state.conversations],
         currentConversation: conversation,
@@ -137,12 +164,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         }));
       }
 
-      // 同步当前视图
+      // 同步当前视图 + 恢复模型选择
+      const model = conversation.model || get().availableModels[0] || '';
       set((state) => ({
         currentConversation: conversation,
         messages: state.messagesByConversation[conversationId] || [],
         isLoading: state.loadingByConversation[conversationId] || false,
         error: state.errorByConversation[conversationId] || null,
+        currentModel: model,
       }));
     } catch (error) {
       console.error('切换对话失败:', error);
@@ -203,6 +232,23 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       }
     } catch (error) {
       console.error('删除对话失败:', error);
+    }
+  },
+
+  setCurrentConversationModel: (model: string) => {
+    const { currentConversation, availableModels } = get();
+    if (!availableModels.includes(model)) return;
+    set({ currentModel: model });
+    // 保存到当前对话
+    if (currentConversation) {
+      const updated = { ...currentConversation, model };
+      db.updateConversation(updated).catch(console.error);
+      set((state) => ({
+        conversations: state.conversations.map((c) =>
+          c.id === currentConversation.id ? { ...c, model } : c
+        ),
+        currentConversation: updated,
+      }));
     }
   },
 
@@ -277,6 +323,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             role: msg.role,
             content: msg.content,
           })),
+          model: conversation.model || undefined,
         }),
       });
 
