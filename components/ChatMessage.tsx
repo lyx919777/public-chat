@@ -146,6 +146,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 >
                   {message.content}
                 </ReactMarkdown>
+                {message.tps !== undefined && (
+                  <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-2 border-t border-zinc-200 dark:border-zinc-700 pt-1">
+                    ⚡ {message.tps} tok/s
+                  </div>
+                )}
               </>
             )}
           </div>

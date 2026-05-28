@@ -7,6 +7,7 @@ export interface Message {
   content: string;
   timestamp: number;
   thinking?: string;
+  tps?: number;
 }
 
 interface ChatStore {
@@ -49,6 +50,7 @@ const toMessage = (msg: DBMessage): Message => ({
   content: msg.content,
   timestamp: msg.timestamp,
   thinking: msg.thinking,
+  tps: msg.tps,
 });
 
 export const useChatStore = create<ChatStore>((set, get) => ({
@@ -237,6 +239,8 @@ messages: get().messages.map((msg) => ({
 
       let accumulatedContent = '';
       let accumulatedThinking = '';
+      let tokenCount = 0;
+      let firstTokenTime = 0;
       const buffer: string[] = [];
 
       while (true) {
@@ -260,7 +264,11 @@ messages: get().messages.map((msg) => ({
               const delta = parsed.choices?.[0]?.delta?.content;
               const reasoning = parsed.choices?.[0]?.delta?.reasoning_content;
               if (delta) {
+                if (firstTokenTime === 0) {
+                  firstTokenTime = Date.now();
+                }
                 accumulatedContent += delta;
+                tokenCount++;
               }
               if (reasoning) {
                 accumulatedThinking += reasoning;
@@ -287,6 +295,15 @@ messages: get().messages.map((msg) => ({
         }
       }
 
+      // 计算 TPS
+      let tps: number | undefined;
+      if (firstTokenTime > 0 && tokenCount > 0) {
+        const elapsedMs = Date.now() - firstTokenTime;
+        if (elapsedMs > 0) {
+          tps = Math.round((tokenCount / elapsedMs) * 1000 * 10) / 10;
+        }
+      }
+
       // 流结束后，检查 content 中是否有 ```thinking...``` 标签，提取并剥离
       const T3 = '```';
       const thinkPattern = new RegExp(`${T3}thinking\\n([\\s\\S]*?)${T3}`, 'g');
@@ -306,6 +323,7 @@ messages: get().messages.map((msg) => ({
         content: finalContent,
         timestamp: Date.now(),
         thinking: finalThinking,
+        tps,
       };
       await db.addMessage(assistantMessage);
 
@@ -313,7 +331,7 @@ messages: get().messages.map((msg) => ({
       set((state) => ({
         messages: state.messages.map((msg) =>
           msg.id === assistantMessageId
-            ? { ...msg, content: finalContent, thinking: finalThinking }
+            ? { ...msg, content: finalContent, thinking: finalThinking, tps }
             : msg
         ),
         isLoading: false,
