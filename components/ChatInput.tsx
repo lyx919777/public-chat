@@ -1,6 +1,6 @@
 'use client';
 
-import { Send } from 'lucide-react';
+import { Send, Square } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 interface ChatInputProps {
@@ -8,9 +8,10 @@ interface ChatInputProps {
   onChange: (value: string) => void;
   onSubmit: (content: string) => void;
   disabled: boolean;
+  onStop?: () => void;
 }
 
-export function ChatInput({ value, onChange, onSubmit, disabled }: ChatInputProps) {
+export function ChatInput({ value, onChange, onSubmit, disabled, onStop }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -49,13 +50,23 @@ export function ChatInput({ value, onChange, onSubmit, disabled }: ChatInputProp
             className="w-full resize-none rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
-        <button
-          type="submit"
-          disabled={disabled || !value.trim()}
-          className="p-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-700 text-white transition-colors disabled:cursor-not-allowed flex-shrink-0"
-        >
-          <Send className="w-5 h-5" />
-        </button>
+        {disabled ? (
+          <button
+            type="button"
+            onClick={onStop}
+            className="p-3 rounded-xl bg-red-600 hover:bg-red-700 text-white transition-colors flex-shrink-0"
+          >
+            <Square className="w-5 h-5" />
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={disabled || !value.trim()}
+            className="p-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-700 text-white transition-colors disabled:cursor-not-allowed flex-shrink-0"
+          >
+            <Send className="w-5 h-5" />
+          </button>
+        )}
       </div>
     </form>
   );

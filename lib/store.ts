@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { db, type Conversation, type Message as DBMessage } from '@/lib/db';
 
+const abortControllers = new Map<string, AbortController>();
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -51,6 +53,9 @@ interface ChatStore {
 
   // 清除当前对话
   clearCurrentChat: () => void;
+
+  // 停止生成
+  stopGenerating: (conversationId?: string) => void;
 }
 
 // 将 DBMessage 转换为 Message
@@ -259,11 +264,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     try {
       // 获取该对话的消息列表作为上下文
       const convMessages = get().messagesByConversation[convId] || [];
+      const abortController = new AbortController();
+      abortControllers.set(convId, abortController);
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: abortController.signal,
         body: JSON.stringify({
           messages: convMessages.map((msg) => ({
             role: msg.role,
@@ -378,6 +386,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         }
       }
 
+      abortControllers.delete(convId);
+
       // 计算 TPS
       let tps: number | undefined;
       if (firstTokenTime > 0 && tokenCount > 0) {
@@ -439,6 +449,22 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         };
       });
     } catch (error) {
+      abortControllers.delete(convId);
+      // 用户主动停止，不显示错误
+      if ((error as Error)?.name === 'AbortError') {
+        // 恢复 UI 状态（不显示错误）
+        set((state) => ({
+          loadingByConversation: {
+            ...state.loadingByConversation,
+            [convId]: false,
+          },
+          streamingConversations: state.streamingConversations.filter((id) => id !== convId),
+          ...(state.currentConversation?.id === convId
+            ? { isLoading: false }
+            : {}),
+        }));
+        return;
+      }
       const msg = error instanceof Error ? error.message : String(error);
       console.error('发送消息失败:', msg);
       set((state) => ({
@@ -473,6 +499,23 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         ...state.errorByConversation,
         [convId]: null,
       },
+    }));
+  },
+
+  // 停止生成
+  stopGenerating: (conversationId?: string) => {
+    const id = conversationId || get().currentConversation?.id;
+    if (!id) return;
+    const controller = abortControllers.get(id);
+    if (controller) {
+      controller.abort();
+      abortControllers.delete(id);
+    }
+    // 恢复 UI 状态
+    set((state) => ({
+      loadingByConversation: { ...state.loadingByConversation, [id]: false },
+      streamingConversations: state.streamingConversations.filter((c) => c !== id),
+      ...(state.currentConversation?.id === id ? { isLoading: false } : {}),
     }));
   },
 }));

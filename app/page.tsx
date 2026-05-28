@@ -10,7 +10,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 export default function Home() {
   useTheme();
-  const { messages, isLoading, sendMessage, clearCurrentChat, error } = useChatStore();
+  const { messages, isLoading, sendMessage, clearCurrentChat, error, stopGenerating } = useChatStore();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   // 初始化数据
@@ -133,6 +133,7 @@ export default function Home() {
             onChange={setInput}
             onSubmit={handleSubmit}
             disabled={isLoading}
+            onStop={() => stopGenerating()}
           />
           <p className="text-xs text-center text-zinc-400 dark:text-zinc-500 mt-2">
             对话记录保存在本地 · 无需登录 · 免费使用
