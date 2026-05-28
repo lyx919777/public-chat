@@ -104,4 +104,4 @@ MIT
 
 ---
 
-> Built by [AtomCode](https://atomgit.com) + [CodingPlan](https://atomgit.com) · AI Agent · March 2025
+> Built by [AtomCode](https://atomgit.com) + [CodingPlan](https://atomgit.com) · AI Agent

@@ -102,4 +102,4 @@ MIT
 
 ---
 
-> 由 [AtomCode](https://atomgit.com) + [CodingPlan](https://atomgit.com) 构建 · AI 智能体 · 2025 年 3 月
+> 由 [AtomCode](https://atomgit.com) + [CodingPlan](https://atomgit.com) 构建 · AI 智能体
