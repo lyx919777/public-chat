@@ -8,60 +8,27 @@ import { type Message } from '@/lib/store';
 import { formatTime } from '@/lib/utils';
 import type { Components } from 'react-markdown';
 
-/**
- * 预处理 AI 回复内容，确保所有数学公式被正确识别。
- *
- * remark-math 只识别 $...$（行内）和 $$...$$（行间，必须独占一行）。
- * AI 常用 \(...\) 和 \[...\] 以及不带反斜杠的 [...]，都需要转换。
- * 处理顺序至关重要：先处理带反斜杠的，再处理裸的，避免 `\` 残留。
- */
-function preprocessMath(content: string): string {
-  // 0) 修复缺少开头的 $$：AI 输出形如 "= \sum ... }$$ 文本" 时只有末尾 $$ 没有开头 $$
-  //    该行有 LaTeX 命令并结尾 "$$"，但行首不是 "$$"，则补上开头 "$$" 并换行
-  content = content.replace(
-    /^(?!\$\$)(?:[ \t]*[=:]\s+)?(\\[a-zA-Z]+[\s\S]*?)\}\s*\$\$([ \t]|$)/gm,
-    (_, latex) => `$$${latex}}$$\n\n`
+function CopyButton({ codeText }: { codeText: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(codeText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // 不支持剪贴板 API 时静默失败
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="absolute top-2 right-2 px-2 py-1 text-xs rounded bg-zinc-300/80 dark:bg-zinc-700/80 hover:bg-zinc-400 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
+    >
+      {copied ? '已复制' : '复制'}
+    </button>
   );
-
-  // 1) $...$ → \(...\)（统一用 \(...\) 中转，避免 remark-math 对某些字符识别不佳）
-  content = content.replace(/(?<!\$)\$([^$\n]+?)\$(?!\$)/g, (_, inner) => {
-    const trimmed = inner.trim();
-    // 排除纯数字价格（如 $5、$99.9），其他一律当数学处理
-    if (/^[\d.,\s]*$/.test(trimmed)) {
-      return `$${trimmed}$`;
-    }
-    return `\\(${trimmed}\\)`;
-  });
-
-  // 1) \(...\) → $...$（行内公式）
-  content = content.replace(/\\\(([\s\S]*?)\\\)/g, (_, inner) => {
-    return `$${inner.trim()}$`;
-  });
-
-  // 2) \[...\] → \n\n$$...$$\n\n（行间公式）
-  //    注意：必须吃掉 \[ 和 \] 前后的所有字符，不留 `\` 残留
-  content = content.replace(/\\\[([\s\S]*?)\\\]/g, (_, inner) => {
-    return `\n\n$$${inner.trim()}$$\n\n`;
-  });
-
-  // 3) 裸的 [ LaTeX ]（不含反斜杠前缀），仅当内容看起来像数学才转
-  content = content.replace(/(?<!\\)\[([^\[\]]+)\](?!\\)/g, (match, inner) => {
-    if (/\\[a-zA-Z]+|[\\^{}_]/.test(inner)) {
-      return `\n\n$$${inner.trim()}$$\n\n`;
-    }
-    return match;
-  });
-
-  // 4) 将行内混在文字中的 $$...$$（非独占一行）移到独立一行
-  content = content.replace(
-    /([^\n])\s*\$\$([\s\S]*?)\$\$\s*/g,
-    (_, before, inner) => {
-      if (before === '\n' || before === '') return _;
-      return `${before}\n\n$$${inner.trim()}$$\n\n`;
-    }
-  );
-
-  return content;
 }
 
 interface ChatMessageProps {
@@ -69,7 +36,7 @@ interface ChatMessageProps {
 }
 
 const markdownComponents: Components = {
-  // 代码块高亮
+  // 代码块高亮 + 复制
   code: ({ className, children, ...props }) => {
     const isInline = !className;
     if (isInline) {
@@ -79,12 +46,16 @@ const markdownComponents: Components = {
         </code>
       );
     }
+    const codeText = String(children).replace(/\n$/, '');
     return (
-      <pre className="bg-zinc-200/70 dark:bg-zinc-800/70 rounded-lg p-4 my-3 overflow-x-auto">
-        <code className={`${className} text-sm font-mono leading-relaxed`} {...props}>
-          {children}
-        </code>
-      </pre>
+      <div className="relative group">
+        <pre className="bg-zinc-200/70 dark:bg-zinc-800/70 rounded-lg p-4 my-3 overflow-x-auto">
+          <code className={`${className} text-sm font-mono leading-relaxed`} {...props}>
+            {children}
+          </code>
+        </pre>
+        <CopyButton codeText={codeText} />
+      </div>
     );
   },
   // 表格样式
@@ -180,7 +151,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   rehypePlugins={[rehypeKatex]}
                   components={markdownComponents}
                 >
-                  {preprocessMath(message.content)}
+                  {message.content}
                 </ReactMarkdown>
               </>
             )}
