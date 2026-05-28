@@ -3,18 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useChatStore } from '@/lib/store';
 import { formatTime, formatDate } from '@/lib/utils';
-import { Menu, Plus, Trash2, Edit3, MessageSquare } from 'lucide-react';
+import { Plus, Trash2, Edit3, MessageSquare } from 'lucide-react';
 
 export function Sidebar() {
   const {
     conversations,
     currentConversation,
-    isSidebarOpen,
     selectConversation,
     createNewConversation,
     deleteConversation,
     renameConversation,
-    toggleSidebar,
   } = useChatStore();
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -59,21 +57,7 @@ export function Sidebar() {
   };
 
   return (
-    <>
-      {/* 移动端遮罩层 */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => toggleSidebar()}
-        />
-      )}
-
-      {/* 侧边栏 */}
-      <aside
-        className={`fixed top-0 left-0 h-full w-72 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 z-50 transition-transform duration-300 ease-in-out ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
+      <aside className="w-72 h-full bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex-shrink-0">
         <div className="flex flex-col h-full">
           {/* 头部 */}
           <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
@@ -169,6 +153,5 @@ export function Sidebar() {
           </div>
         </div>
       </aside>
-    </>
   );
 }

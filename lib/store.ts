@@ -19,9 +19,6 @@ interface ChatStore {
   isLoading: boolean;
   // 错误信息
   error: string | null;
-  // 侧边栏是否打开
-  isSidebarOpen: boolean;
-
   // 初始化 - 加载对话列表和默认对话
   initialize: () => Promise<void>;
 
@@ -42,12 +39,6 @@ interface ChatStore {
 
   // 清除当前对话
   clearCurrentChat: () => void;
-
-  // 切换侧边栏
-  toggleSidebar: () => void;
-
-  // 设置侧边栏状态
-  setSidebarOpen: (open: boolean) => void;
 }
 
 // 将 DBMessage 转换为 Message
@@ -64,7 +55,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   messages: [],
   isLoading: false,
   error: null,
-  isSidebarOpen: true,
 
   initialize: async () => {
     try {
@@ -312,13 +302,5 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
 
     set({ messages: [], error: null });
-  },
-
-  toggleSidebar: () => {
-    set((state) => ({ isSidebarOpen: !state.isSidebarOpen }));
-  },
-
-  setSidebarOpen: (open: boolean) => {
-    set({ isSidebarOpen: open });
   },
 }));

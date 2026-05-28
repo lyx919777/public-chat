@@ -10,7 +10,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 export default function Home() {
   useTheme();
-  const { messages, isLoading, sendMessage, clearCurrentChat, isSidebarOpen, error } = useChatStore();
+  const { messages, isLoading, sendMessage, clearCurrentChat, error } = useChatStore();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   // 初始化数据
@@ -47,11 +47,7 @@ export default function Home() {
       <Sidebar />
 
       {/* 主内容区域 */}
-      <div 
-        className={`flex-1 flex flex-col h-full transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? 'md:ml-72' : 'md:ml-0'
-        }`}
-      >
+      <div className="flex-1 flex flex-col h-full">
         <Header onClear={handleClear} />
         
         <main className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
