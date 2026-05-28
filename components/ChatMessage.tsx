@@ -7,22 +7,37 @@ import { type Message } from '@/lib/store';
 import { formatTime } from '@/lib/utils';
 import type { Components } from 'react-markdown';
 
-/** 预处理 AI 回复内容，确保所有数学公式被正确识别 */
+/**
+ * 预处理 AI 回复内容，确保所有数学公式被正确识别。
+ *
+ * remark-math 只识别 $...$（行内）和 $$...$$（行间，必须独占一行）。
+ * AI 常用 \(...\) 和 \[...\] 以及不带反斜杠的 [...]，都需要转换。
+ * 处理顺序至关重要：先处理带反斜杠的，再处理裸的，避免 `\` 残留。
+ */
 function preprocessMath(content: string): string {
-  // 2) 将 [ LaTeX 内容 ]（含 \、^、_、{、}）转成独立一行的 $$ ... $$
-  //    注意: 这需要放在前面，避免与已有 $$ 冲突
-  content = content.replace(/\[([^\[\]]+)\]/g, (match, inner) => {
+  // 1) \(...\) → $...$（行内公式）
+  content = content.replace(/\\\(([\s\S]*?)\\\)/g, (_, inner) => {
+    return `$${inner.trim()}$`;
+  });
+
+  // 2) \[...\] → \n\n$$...$$\n\n（行间公式）
+  //    注意：必须吃掉 \[ 和 \] 前后的所有字符，不留 `\` 残留
+  content = content.replace(/\\\[([\s\S]*?)\\\]/g, (_, inner) => {
+    return `\n\n$$${inner.trim()}$$\n\n`;
+  });
+
+  // 3) 裸的 [ LaTeX ]（不含反斜杠前缀），仅当内容看起来像数学才转
+  content = content.replace(/(?<!\\)\[([^\[\]]+)\](?!\\)/g, (match, inner) => {
     if (/\\[a-zA-Z]+|[\\^{}_]/.test(inner)) {
       return `\n\n$$${inner.trim()}$$\n\n`;
     }
     return match;
   });
 
-  // 3) 将行内混在文字中的 $$...$$（非独占一行）也移到独立一行
+  // 4) 将行内混在文字中的 $$...$$（非独占一行）移到独立一行
   content = content.replace(
     /([^\n])\s*\$\$([\s\S]*?)\$\$\s*/g,
     (_, before, inner) => {
-      // 如果 before 是换行则不动，否则加换行分离
       if (before === '\n' || before === '') return _;
       return `${before}\n\n$$${inner.trim()}$$\n\n`;
     }
