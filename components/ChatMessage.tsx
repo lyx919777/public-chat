@@ -149,7 +149,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
         }`}>
           <div className="text-sm leading-relaxed [&>p:first-child]:mt-0 [&>p:last-child]:mb-0">
             {isUser ? (
-              <span className="whitespace-pre-wrap">{message.content}</span>
+              <>
+                {message.images && message.images.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {message.images.map((img, i) => (
+                      <img key={i} src={img} alt={`上传图片 ${i+1}`} className="max-w-[200px] max-h-[200px] rounded-lg object-cover border border-zinc-300 dark:border-zinc-600" />
+                    ))}
+                  </div>
+                )}
+                <span className="whitespace-pre-wrap">{message.content}</span>
+              </>
             ) : (
               <>
                 {message.thinking && (

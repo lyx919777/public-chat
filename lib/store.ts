@@ -7,6 +7,7 @@ export interface Message {
   content: string;
   timestamp: number;
   thinking?: string;
+  images?: string[];
 }
 
 interface ChatStore {
@@ -36,7 +37,7 @@ interface ChatStore {
   deleteConversation: (conversationId: string) => Promise<void>;
 
   // 发送消息
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, images?: string[]) => Promise<void>;
 
   // 清除当前对话
   clearCurrentChat: () => void;
@@ -160,7 +161,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-  sendMessage: async (content: string) => {
+  sendMessage: async (content: string, images?: string[]) => {
     const { currentConversation } = get();
     if (!currentConversation) {
       // 如果没有当前对话，创建一个
@@ -175,6 +176,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       conversationId: conversation.id,
       role: 'user',
       content,
+      images: images || undefined,
       timestamp: Date.now(),
     };
 
@@ -204,13 +206,20 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           messages: get().messages.map((msg) => ({
             role: msg.role,
             content: msg.content,
+            ...(msg.images ? { images: msg.images } : {}),
           })),
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `API 请求失败 (${response.status})`);
+        const statusText = `[${response.status}]`;
+        const brief = errorData.error || `API 请求失败 ${statusText}`;
+        let fullMsg = brief;
+        if (errorData.details) {
+          fullMsg += `\n\n${'─'.repeat(40)}\n${errorData.details}`;
+        }
+        throw new Error(fullMsg);
       }
 
       // 读取流式 SSE 响应
@@ -313,9 +322,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         isLoading: false,
       }));
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error('发送消息失败:', msg);
       set((state) => ({
         isLoading: false,
-        error: error instanceof Error ? error.message : '未知错误',
+        error: msg,
       }));
     }
   },

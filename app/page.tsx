@@ -26,11 +26,11 @@ export default function Home() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSubmit = async (content: string) => {
-    if (!content.trim()) return;
+  const handleSubmit = async (content: string, images?: string[]) => {
+    if (!content.trim() && (!images || images.length === 0)) return;
     setInput('');
     try {
-      await sendMessage(content);
+      await sendMessage(content, images);
     } catch (error) {
       console.error('发送消息失败:', error);
     }
@@ -83,14 +83,46 @@ export default function Home() {
             </>
           )}
           {error && (
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm text-center">
-              {error}
-              <button
-                onClick={() => window.location.reload()}
-                className="ml-2 underline hover:text-red-800 dark:hover:text-red-300"
-              >
-                刷新页面重试
-              </button>
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
+              <div className="flex items-start gap-2">
+                <span className="flex-shrink-0 mt-0.5">⚠️</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium">请求失败</p>
+                  <p className="mt-1 whitespace-pre-wrap break-words">{error.split('────────────────────────────────────────')[0].trim()}</p>
+                  {error.includes('─'.repeat(40)) && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          const detail = e.currentTarget.nextElementSibling;
+                          if (detail) {
+                            detail.classList.toggle('hidden');
+                          }
+                        }}
+                        className="mt-2 text-xs underline hover:text-red-800 dark:hover:text-red-300"
+                      >
+                        查看详细日志 ▾
+                      </button>
+                      <pre className="hidden mt-2 p-3 bg-red-100 dark:bg-red-950/50 rounded text-xs overflow-x-auto whitespace-pre-wrap">
+                        {error.split('─'.repeat(40))[1]?.trim()}
+                      </pre>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="mt-2 flex gap-2 text-xs">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="underline hover:text-red-800 dark:hover:text-red-300"
+                >
+                  刷新重试
+                </button>
+                <button
+                  onClick={() => navigator.clipboard.writeText(error)}
+                  className="underline hover:text-red-800 dark:hover:text-red-300"
+                >
+                  复制错误
+                </button>
+              </div>
             </div>
           )}
         </main>

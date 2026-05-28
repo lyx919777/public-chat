@@ -17,6 +17,7 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   thinking?: string;
+  images?: string[];
   timestamp: number;
 }
 
