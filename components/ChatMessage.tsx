@@ -15,6 +15,16 @@ import type { Components } from 'react-markdown';
  * 处理顺序至关重要：先处理带反斜杠的，再处理裸的，避免 `\` 残留。
  */
 function preprocessMath(content: string): string {
+  // 0) $...$ → \(...\)（统一用 \(...\) 中转，避免 remark-math 对某些字符识别不佳）
+  content = content.replace(/(?<!\$)\$([^$\n]+?)\$(?!\$)/g, (_, inner) => {
+    const trimmed = inner.trim();
+    // 排除纯数字价格（如 $5、$99.9），其他一律当数学处理
+    if (/^[\d.,\s]*$/.test(trimmed)) {
+      return `$${trimmed}$`;
+    }
+    return `\\(${trimmed}\\)`;
+  });
+
   // 1) \(...\) → $...$（行内公式）
   content = content.replace(/\\\(([\s\S]*?)\\\)/g, (_, inner) => {
     return `$${inner.trim()}$`;
