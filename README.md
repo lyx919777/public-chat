@@ -5,19 +5,20 @@
 ## 功能特性
 
 - 🤖 无需登录认证，直接使用
-- 💬 支持流式对话（基于 Vercel AI SDK）
+- 💬 多轮对话，历史记录保存
 - 🌓 明暗主题切换
 - 📱 响应式设计，适配移动端
-- 🔒 隐私保护，对话内容不保存
+- 💾 本地存储对话历史（IndexedDB）
 - 🚀 一键部署到 Vercel
+- ⚡ Edge Runtime，极速响应
 
 ## 技术栈
 
-- **Next.js 16** - React 框架
+- **Next.js 15** - React 框架
 - **TypeScript** - 类型安全
 - **Tailwind CSS** - 原子化 CSS
-- **Vercel AI SDK** - AI 流式处理
 - **Zustand** - 状态管理
+- **IndexedDB** - 本地数据持久化
 
 ## 环境变量配置
 
@@ -26,12 +27,14 @@
 ```env
 # OpenAI API 配置（必填）
 OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-OPENAI_BASE_URL=https://api.openai.com/v1  # 可选，自定义 API 地址（用于代理或兼容 API）
-OPENAI_MODEL=gpt-4o-mini  # 可选，默认 gpt-4o-mini
-OPENAI_SYSTEM_PROMPT=你是一个友好、专业的 AI 助手。请用简洁明了的中文回答用户的问题。  # 可选
 
-# 自定义配置（可选）
-NEXT_PUBLIC_APP_NAME=Public Chat
+# 可选配置
+OPENAI_BASE_URL=https://api.openai.com/v1   # 自定义 API 地址（用于代理或兼容 API）
+OPENAI_MODEL=gpt-4o-mini                     # 模型名称，默认 gpt-4o-mini
+OPENAI_SYSTEM_PROMPT=你是一个友好、专业的 AI 助手。请用简洁的中文回答。  # 系统提示词
+
+# 自定义配置
+NEXT_PUBLIC_APP_NAME=Public Chat             # 网站名称
 ```
 
 ## 本地开发
@@ -52,10 +55,11 @@ npm start
 
 ## 部署到 Vercel
 
-1. 点击 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/public-chat&env=OPENAI_API_KEY,OPENAI_MODEL,OPENAI_SYSTEM_PROMPT)
-2. 连接你的 GitHub 仓库
-3. 配置环境变量
-4. 点击 Deploy
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/lyx919777/public-chat&env=OPENAI_API_KEY,OPENAI_BASE_URL,OPENAI_MODEL)
+
+1. 点击上方按钮或导入你的 GitHub 仓库
+2. 配置环境变量（`OPENAI_API_KEY` 为必填项）
+3. 点击 Deploy 即可
 
 ## 项目结构
 
@@ -71,10 +75,13 @@ public-chat/
 ├── components/
 │   ├── ChatInput.tsx         # 输入框组件
 │   ├── ChatMessage.tsx       # 消息组件
-│   └── Header.tsx            # 头部组件
+│   ├── Header.tsx            # 头部组件
+│   ├── SearchDialog.tsx      # 搜索对话弹窗
+│   └── Sidebar.tsx           # 侧边栏
 ├── hooks/
 │   └── useTheme.ts           # 主题切换 Hook
 ├── lib/
+│   ├── db.ts                 # IndexedDB 数据库
 │   ├── store.ts              # Zustand 状态管理
 │   └── utils.ts              # 工具函数
 └── public/                   # 静态资源
@@ -83,6 +90,7 @@ public-chat/
 ## 安全考虑
 
 - 所有 API 调用通过后端路由，不暴露 API 密钥
+- 对话数据仅存储在浏览器本地
 - 使用 Edge Runtime 提高性能
 - 无用户认证，适合公开访问
 
