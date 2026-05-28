@@ -218,27 +218,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        // 构建详细的错误信息
-        let detailedError = `API 请求失败: ${errorData.error || '未知错误'}`;
-        if (errorData.details) {
-          detailedError += `\n详细信息: ${errorData.details}`;
-        }
-        if (errorData.status) {
-          detailedError += `\n状态码: ${errorData.status}`;
-        }
-        
-        // 添加请求信息
-        detailedError += `\n\n请求信息:`;
-        detailedError += `\n- URL: /api/chat`;
-        detailedError += `\n- Method: POST`;
-        detailedError += `\n- Body: ${JSON.stringify({
-          messages: get().messages.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          })),
-        }, null, 2)}`;
-        
-        throw new Error(detailedError);
+        throw new Error(errorData.error || `API 请求失败 (${response.status})`);
       }
 
       const data = await response.json();
