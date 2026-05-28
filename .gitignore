@@ -18,8 +18,9 @@ coverage/
 # Production
 *.log
 
-# Environment variables - 保留 .env 和 .env.example
+# Environment variables
 .env
+.env.local
 .env.example
 
 # Vercel
