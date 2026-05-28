@@ -6,6 +6,7 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  thinking?: string;
 }
 
 interface ChatStore {
@@ -47,6 +48,7 @@ const toMessage = (msg: DBMessage): Message => ({
   role: msg.role,
   content: msg.content,
   timestamp: msg.timestamp,
+  thinking: msg.thinking,
 });
 
 export const useChatStore = create<ChatStore>((set, get) => ({
@@ -228,6 +230,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       }));
 
       let accumulatedContent = '';
+      let accumulatedThinking = '';
       const buffer: string[] = [];
 
       while (true) {
@@ -249,13 +252,19 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             try {
               const parsed = JSON.parse(data);
               const delta = parsed.choices?.[0]?.delta?.content;
+              const reasoning = parsed.choices?.[0]?.delta?.reasoning_content;
               if (delta) {
                 accumulatedContent += delta;
+              }
+              if (reasoning) {
+                accumulatedThinking += reasoning;
+              }
+              if (delta || reasoning) {
                 // 每收到一段增量就更新 UI
                 set((state) => ({
                   messages: state.messages.map((msg) =>
                     msg.id === assistantMessageId
-                      ? { ...msg, content: accumulatedContent }
+                      ? { ...msg, content: accumulatedContent, thinking: accumulatedThinking || undefined }
                       : msg
                   ),
                 }));
@@ -272,17 +281,37 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         }
       }
 
-      // 流结束，保存完整消息到数据库
+      // 流结束后，检查 content 中是否有 ```thinking...``` 标签，提取并剥离
+      const T3 = '```';
+      const thinkPattern = new RegExp(`${T3}thinking\\n([\\s\\S]*?)${T3}`, 'g');
+      const thinkMatch = thinkPattern.exec(accumulatedContent);
+      let finalThinking = accumulatedThinking || undefined;
+      let finalContent = accumulatedContent;
+      if (thinkMatch) {
+        finalThinking = (finalThinking ? finalThinking + '\n' : '') + thinkMatch[1].trim();
+        finalContent = accumulatedContent.replace(thinkPattern, '').trim();
+      }
+
+      // 保存完整消息到数据库
       const assistantMessage: DBMessage = {
         id: assistantMessageId,
         conversationId: conversation.id,
         role: 'assistant',
-        content: accumulatedContent,
+        content: finalContent,
         timestamp: Date.now(),
+        thinking: finalThinking,
       };
       await db.addMessage(assistantMessage);
 
-      set({ isLoading: false });
+      // 更新 UI 为最终内容（剥离标签后的内容）
+      set((state) => ({
+        messages: state.messages.map((msg) =>
+          msg.id === assistantMessageId
+            ? { ...msg, content: finalContent, thinking: finalThinking }
+            : msg
+        ),
+        isLoading: false,
+      }));
     } catch (error) {
       set((state) => ({
         isLoading: false,

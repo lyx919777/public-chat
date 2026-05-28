@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -123,6 +124,10 @@ const markdownComponents: Components = {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
+  const [expandedThinking, setExpandedThinking] = useState<string | null>(null);
+  const toggleThinking = (id: string) => {
+    setExpandedThinking(expandedThinking === id ? null : id);
+  };
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
@@ -146,13 +151,29 @@ export function ChatMessage({ message }: ChatMessageProps) {
             {isUser ? (
               <span className="whitespace-pre-wrap">{message.content}</span>
             ) : (
-              <ReactMarkdown
-                remarkPlugins={[remarkMath]}
-                rehypePlugins={[rehypeKatex]}
-                components={markdownComponents}
-              >
-                {preprocessMath(message.content)}
-              </ReactMarkdown>
+              <>
+                {message.thinking && (
+                  <div className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 mb-3 text-sm text-zinc-600 dark:text-zinc-400">
+                    <button
+                      onClick={() => toggleThinking(message.id)}
+                      className="flex items-center gap-1 w-full text-left font-medium"
+                    >
+                      <span className={`transition-transform duration-200 ${expandedThinking === message.id ? 'rotate-90' : ''}`}>▶</span>
+                      🤔 思考过程
+                    </button>
+                    {expandedThinking === message.id && (
+                      <pre className="whitespace-pre-wrap text-xs mt-2">{message.thinking}</pre>
+                    )}
+                  </div>
+                )}
+                <ReactMarkdown
+                  remarkPlugins={[remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={markdownComponents}
+                >
+                  {preprocessMath(message.content)}
+                </ReactMarkdown>
+              </>
             )}
           </div>
         </div>

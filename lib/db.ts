@@ -16,6 +16,7 @@ export interface Message {
   conversationId: string;
   role: 'user' | 'assistant';
   content: string;
+  thinking?: string;
   timestamp: number;
 }
 
