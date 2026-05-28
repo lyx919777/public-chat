@@ -15,7 +15,14 @@ import type { Components } from 'react-markdown';
  * 处理顺序至关重要：先处理带反斜杠的，再处理裸的，避免 `\` 残留。
  */
 function preprocessMath(content: string): string {
-  // 0) $...$ → \(...\)（统一用 \(...\) 中转，避免 remark-math 对某些字符识别不佳）
+  // 0) 修复缺少开头的 $$：AI 输出形如 "= \sum ... }$$ 文本" 时只有末尾 $$ 没有开头 $$
+  //    该行有 LaTeX 命令并结尾 "$$"，但行首不是 "$$"，则补上开头 "$$" 并换行
+  content = content.replace(
+    /^(?!\$\$)(?:[ \t]*[=:]\s+)?(\\[a-zA-Z]+[\s\S]*?)\}\s*\$\$([ \t]|$)/gm,
+    (_, latex) => `$$${latex}}$$\n\n`
+  );
+
+  // 1) $...$ → \(...\)（统一用 \(...\) 中转，避免 remark-math 对某些字符识别不佳）
   content = content.replace(/(?<!\$)\$([^$\n]+?)\$(?!\$)/g, (_, inner) => {
     const trimmed = inner.trim();
     // 排除纯数字价格（如 $5、$99.9），其他一律当数学处理
