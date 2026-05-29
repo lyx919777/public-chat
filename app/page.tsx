@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useChatStore, type Message } from '@/lib/store';
+import { useTranslations } from '@/lib/i18n';
 import { ChatMessage } from '@/components/ChatMessage';
 import { ChatInput } from '@/components/ChatInput';
 import { Header } from '@/components/Header';
@@ -10,6 +11,8 @@ import { useTheme } from '@/hooks/useTheme';
 
 export default function Home() {
   useTheme();
+  const lang = useChatStore(s => s.language);
+  const t = useTranslations(lang);
   const { messages, isLoading, sendMessage, clearCurrentChat, error, stopGenerating } = useChatStore();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -56,10 +59,10 @@ export default function Home() {
               <div className="text-6xl">🤖</div>
               <h2 className="text-2xl font-semibold">Public Chat AI</h2>
               <p className="text-zinc-500 dark:text-zinc-400 max-w-md">
-                一个无需认证的公共 AI 聊天服务。输入你的问题，AI 会立即为你解答。
+                {t('landingDescription')}
               </p>
               <div className="text-sm text-zinc-400 dark:text-zinc-500">
-                对话记录保存在本地浏览器中
+                {t('landingDataSaved')}
               </div>
             </div>
           ) : (
@@ -87,7 +90,7 @@ export default function Home() {
               <div className="flex items-start gap-2">
                 <span className="flex-shrink-0 mt-0.5">⚠️</span>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium">请求失败</p>
+                  <p className="font-medium">{t('requestFailed')}</p>
                   <p className="mt-1 whitespace-pre-wrap break-words">{error.split('────────────────────────────────────────')[0].trim()}</p>
                   {error.includes('─'.repeat(40)) && (
                     <>

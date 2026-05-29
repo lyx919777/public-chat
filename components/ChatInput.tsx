@@ -2,6 +2,8 @@
 
 import { Send, Square } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { useTranslations } from '@/lib/i18n';
+import { useChatStore } from '@/lib/store';
 
 interface ChatInputProps {
   value: string;
@@ -12,6 +14,8 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ value, onChange, onSubmit, disabled, onStop }: ChatInputProps) {
+  const lang = useChatStore(s => s.language);
+  const t = useTranslations(lang);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -44,7 +48,7 @@ export function ChatInput({ value, onChange, onSubmit, disabled, onStop }: ChatI
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="输入消息... (Shift+Enter 换行)"
+            placeholder={t('inputPlaceholder')}
             disabled={disabled}
             rows={1}
             className="w-full resize-none rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"

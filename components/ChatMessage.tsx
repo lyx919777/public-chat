@@ -4,7 +4,8 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { type Message } from '@/lib/store';
+import { useTranslations } from '@/lib/i18n';
+import { useChatStore, type Message } from '@/lib/store';
 import { formatTime } from '@/lib/utils';
 import type { Components } from 'react-markdown';
 
@@ -17,7 +18,7 @@ function preprocessMath(text: string): string {
   return result;
 }
 
-function CopyButton({ codeText }: { codeText: string }) {
+function CopyButton({ codeText, t }: { codeText: string; t: (key: string, ...args: string[]) => string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -35,7 +36,7 @@ function CopyButton({ codeText }: { codeText: string }) {
       onClick={handleCopy}
       className="absolute top-2 right-2 px-2 py-1 text-xs rounded bg-zinc-300/80 dark:bg-zinc-700/80 hover:bg-zinc-400 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
     >
-      {copied ? '已复制' : '复制'}
+      {copied ? t('copied') : t('copy')}
     </button>
   );
 }
@@ -44,69 +45,71 @@ interface ChatMessageProps {
   message: Message;
 }
 
-const markdownComponents: Components = {
-  // 代码块高亮 + 复制
-  code: ({ className, children, ...props }) => {
-    const isInline = !className;
-    if (isInline) {
-      return (
-        <code className="bg-zinc-200 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
-          {children}
-        </code>
-      );
-    }
-    const codeText = String(children).replace(/\n$/, '');
-    return (
-      <div className="relative group">
-        <pre className="bg-zinc-200/70 dark:bg-zinc-800/70 rounded-lg p-4 my-3 overflow-x-auto">
-          <code className={`${className} text-sm font-mono leading-relaxed`} {...props}>
-            {children}
-          </code>
-        </pre>
-        <CopyButton codeText={codeText} />
-      </div>
-    );
-  },
-  // 表格样式
-  table: ({ children }) => (
-    <div className="overflow-x-auto my-3">
-      <table className="min-w-full border-collapse border border-zinc-300 dark:border-zinc-600 text-sm">
-        {children}
-      </table>
-    </div>
-  ),
-  th: ({ children }) => (
-    <th className="border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 px-3 py-2 font-semibold text-left">
-      {children}
-    </th>
-  ),
-  td: ({ children }) => (
-    <td className="border border-zinc-300 dark:border-zinc-600 px-3 py-2">
-      {children}
-    </td>
-  ),
-  // 列表样式
-  ul: ({ children }) => (
-    <ul className="list-disc pl-6 my-2 space-y-1">{children}</ul>
-  ),
-  ol: ({ children }) => (
-    <ol className="list-decimal pl-6 my-2 space-y-1">{children}</ol>
-  ),
-  // 段落间距
-  p: ({ children }) => (
-    <p className="my-2 last:mb-0 leading-relaxed">{children}</p>
-  ),
-  // 标题样式
-  h1: ({ children }) => <h1 className="text-xl font-bold my-3">{children}</h1>,
-  h2: ({ children }) => <h2 className="text-lg font-bold my-2">{children}</h2>,
-  h3: ({ children }) => <h3 className="text-base font-bold my-2">{children}</h3>,
-};
-
 export function ChatMessage({ message }: ChatMessageProps) {
+  const lang = useChatStore(s => s.language);
+  const t = useTranslations(lang);
   const isUser = message.role === 'user';
   const [expandedThinking, setExpandedThinking] = useState<string | null>(null);
   const toggleThinking = (id: string) => {
     setExpandedThinking(expandedThinking === id ? null : id);
+  };
+
+  const markdownComponents: Components = {
+    // 代码块高亮 + 复制
+    code: ({ className, children, ...props }) => {
+      const isInline = !className;
+      if (isInline) {
+        return (
+          <code className="bg-zinc-200 dark:bg-zinc-700 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+            {children}
+          </code>
+        );
+      }
+      const codeText = String(children).replace(/\n$/, '');
+      return (
+        <div className="relative group">
+          <pre className="bg-zinc-200/70 dark:bg-zinc-800/70 rounded-lg p-4 my-3 overflow-x-auto">
+            <code className={`${className} text-sm font-mono leading-relaxed`} {...props}>
+              {children}
+            </code>
+          </pre>
+          <CopyButton codeText={codeText} t={t} />
+        </div>
+      );
+    },
+    // 表格样式
+    table: ({ children }) => (
+      <div className="overflow-x-auto my-3">
+        <table className="min-w-full border-collapse border border-zinc-300 dark:border-zinc-600 text-sm">
+          {children}
+        </table>
+      </div>
+    ),
+    th: ({ children }) => (
+      <th className="border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 px-3 py-2 font-semibold text-left">
+        {children}
+      </th>
+    ),
+    td: ({ children }) => (
+      <td className="border border-zinc-300 dark:border-zinc-600 px-3 py-2">
+        {children}
+      </td>
+    ),
+    // 列表样式
+    ul: ({ children }) => (
+      <ul className="list-disc pl-6 my-2 space-y-1">{children}</ul>
+    ),
+    ol: ({ children }) => (
+      <ol className="list-decimal pl-6 my-2 space-y-1">{children}</ol>
+    ),
+    // 段落间距
+    p: ({ children }) => (
+      <p className="my-2 last:mb-0 leading-relaxed">{children}</p>
+    ),
+    // 标题样式
+    h1: ({ children }) => <h1 className="text-xl font-bold my-3">{children}</h1>,
+    h2: ({ children }) => <h2 className="text-lg font-bold my-2">{children}</h2>,
+    h3: ({ children }) => <h3 className="text-base font-bold my-2">{children}</h3>,
   };
 
   return (
@@ -141,7 +144,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                       className="flex items-center gap-1 w-full text-left font-medium"
                     >
                       <span className={`transition-transform duration-200 ${expandedThinking === message.id ? 'rotate-90' : ''}`}>▶</span>
-                      🤔 思考过程
+                      {t('thinkingLabel')}
                     </button>
                     {expandedThinking === message.id && (
                       <div className="mt-2 text-xs leading-relaxed">
@@ -163,10 +166,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   {preprocessMath(message.content)}
                 </ReactMarkdown>
                 {message.tps !== undefined && (
-                  <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-2 border-t border-zinc-200 dark:border-zinc-700 pt-1">
-                    ⚡ {message.tps} tok/s
-                  </div>
-                )}
+                <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-2 border-t border-zinc-200 dark:border-zinc-700 pt-1">
+                  {t('tpsLabel', String(message.tps))}
+                </div>
+              )}
               </>
             )}
           </div>

@@ -4,6 +4,7 @@ import { Moon, Sun, Trash2, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { useChatStore } from '@/lib/store';
+import { useTranslations } from '@/lib/i18n';
 
 interface HeaderProps {
   onClear: () => void;
@@ -12,6 +13,9 @@ interface HeaderProps {
 export function Header({ onClear }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { currentConversation, availableModels, currentModel, setCurrentConversationModel } = useChatStore();
+  const lang = useChatStore(s => s.language);
+  const t = useTranslations(lang);
+  const setLanguage = useChatStore(s => s.setLanguage);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -48,7 +52,7 @@ export function Header({ onClear }: HeaderProps) {
               onClick={() => setOpen(!open)}
               className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-300"
             >
-              <span className="max-w-[100px] truncate">{currentModel || '选择模型'}</span>
+              <span className="max-w-[100px] truncate">{currentModel || t('selectModel')}</span>
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
             </button>
             {open && (
@@ -77,7 +81,7 @@ export function Header({ onClear }: HeaderProps) {
         <button
           onClick={toggleTheme}
           className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          aria-label="切换主题"
+          aria-label={t('toggleTheme')}
         >
           {theme === 'dark' ? (
             <Sun className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
@@ -89,9 +93,17 @@ export function Header({ onClear }: HeaderProps) {
         <button
           onClick={onClear}
           className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          aria-label="清空对话"
+          aria-label={t('clearChat')}
         >
           <Trash2 className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+        </button>
+
+        <button
+          onClick={() => setLanguage(lang === 'zh-CN' ? 'en' : 'zh-CN')}
+          className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-xs font-medium text-zinc-600 dark:text-zinc-400"
+          aria-label={t('switchLang')}
+        >
+          {t('switchLang')}
         </button>
       </div>
     </header>

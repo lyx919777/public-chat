@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react';
 import { useChatStore } from '@/lib/store';
 import { formatTime, formatDate } from '@/lib/utils';
 import { Plus, Trash2, Edit3, MessageSquare } from 'lucide-react';
+import { useTranslations } from '@/lib/i18n';
 
 export function Sidebar() {
+  const lang = useChatStore(s => s.language);
+  const t = useTranslations(lang);
   const {
     conversations,
     currentConversation,
@@ -29,7 +32,7 @@ export function Sidebar() {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (confirm('确定要删除这个对话吗？')) {
+if (confirm(t('confirmDelete'))) {
       await deleteConversation(id);
     }
   };
@@ -63,11 +66,11 @@ export function Sidebar() {
           {/* 头部 */}
           <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">对话历史</h2>
+<h2 className="text-lg font-semibold">{t('chatHistory')}</h2>
               <button
                 onClick={handleNewChat}
                 className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                title="新建对话"
+title={t('newChat')}
               >
                 <Plus className="w-5 h-5" />
               </button>
@@ -77,7 +80,7 @@ export function Sidebar() {
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
             >
               <Plus className="w-4 h-4" />
-              新建对话
+              {t('newChat')}
             </button>
           </div>
 
@@ -86,8 +89,8 @@ export function Sidebar() {
             {conversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center text-zinc-500 dark:text-zinc-400 px-4">
                 <MessageSquare className="w-12 h-12 mb-3 opacity-20" />
-                <p className="text-sm">暂无对话</p>
-                <p className="text-xs mt-1">点击"新建对话"开始聊天</p>
+<p className="text-sm">{t('noConversations')}</p>
+<p className="text-xs mt-1">{t('clickNewChatToStart')}</p>
               </div>
             ) : (
               conversations.map((conversation) => (
@@ -135,14 +138,14 @@ export function Sidebar() {
                     <button
                       onClick={(e) => handleRename(e, conversation)}
                       className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                      title="重命名"
+title={t('rename')}
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={(e) => handleDelete(e, conversation.id)}
                       className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500"
-                      title="删除"
+title={t('delete')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -155,7 +158,7 @@ export function Sidebar() {
           {/* 底部信息 */}
           <div className="p-3 border-t border-zinc-200 dark:border-zinc-800">
             <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center">
-              对话记录保存在本地浏览器中
+              {t('dataSavedLocally')}
             </p>
           </div>
         </div>

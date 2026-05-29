@@ -42,6 +42,10 @@ interface ChatStore {
   // 按对话记忆的模型选择
   setCurrentConversationModel: (model: string) => void;
 
+  // === 国际化 ===
+  language: 'zh-CN' | 'en';
+  setLanguage: (lang: 'zh-CN' | 'en') => void;
+
   // 初始化 - 加载对话列表和默认对话
   initialize: () => Promise<void>;
 
@@ -89,9 +93,16 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   streamingConversations: [],
   availableModels: [],
   currentModel: '',
+  language: 'zh-CN',
 
   initialize: async () => {
     try {
+      // 恢复语言设置
+      const savedLang = localStorage.getItem('language');
+      if (savedLang === 'en' || savedLang === 'zh-CN') {
+        set({ language: savedLang });
+      }
+
       // 加载对话列表
       const conversations = await db.getConversations();
       set({ conversations });
@@ -250,6 +261,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         currentConversation: updated,
       }));
     }
+  },
+
+  setLanguage: (lang: 'zh-CN' | 'en') => {
+    set({ language: lang });
+    localStorage.setItem('language', lang);
   },
 
   sendMessage: async (content: string) => {
